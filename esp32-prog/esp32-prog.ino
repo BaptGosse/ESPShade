@@ -55,6 +55,29 @@ bool isUserAgentValid(AsyncWebServerRequest *request) {
   return true;
 }
 
+// Fonction de vérification du UserAgent de détection
+bool isDetectionAgentValid(AsyncWebServerRequest *request) {
+  if (!request->hasHeader("User-Agent")) {
+    request->send(400, "application/json", "{\"error\":\"Missing User-Agent\"}");
+    return false;
+  }
+
+  String userAgent = request->header("User-Agent");
+
+  if (!userAgent.startsWith("ESPShade/")) {
+    Serial.println("⚠️ Accès refusé : n'est pas un UserAgent ESPShade !");
+    request->client()->close();
+    return false;
+  }
+
+  if (userAgent != "ESPShade/Setup") {
+    request->send(403, "application/json", "{\"error\":\"Invalid User-Agent\"}");
+    return false;
+  }
+
+  return true;
+}
+
 // Fonction de vérification de l'authentification
 bool isAuthenticated(AsyncWebServerRequest *request) {
   if (!request->hasHeader("Authorization")) {
@@ -167,6 +190,22 @@ void setup() {
     StaticJsonDocument<200> jsonResponse;
     jsonResponse["motorState"] = motorState ? "ON" : "OFF";
     jsonResponse["upOrDown"] = upOrDown;
+    String response;
+    serializeJson(jsonResponse, response);
+    request->send(200, "application/json", response);
+  });
+
+  // Route GET pour vérifier si le périphérique est un ESPShade
+  server.on("/infos", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (!isDetectionAgentValid(request)) return;
+
+    Serial.println("Accès autorisé : accès au informations");
+
+    StaticJsonDocument<200> jsonResponse;
+    jsonResponse["imwhat"] = "ESPShade";
+    jsonResponse["time"] = millis()/1000;
+    jsonResponse["mac"] = WiFi.macAddress();
+    jsonResponse["ip"] = WiFi.localIP();
     String response;
     serializeJson(jsonResponse, response);
     request->send(200, "application/json", response);
