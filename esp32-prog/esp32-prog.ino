@@ -4,24 +4,26 @@
 #include <base64.h>
 
 // Indentifiants pour le WIFI
-const char* ssid = "SSID";
-const char* password = "MDP";
+const char* ssid = "WIFI_NAME";
+const char* password = "WIFI_PASSWORD";
 
 // Identifiants pour l'authentification
 const char* http_username = "admin";
 const char* http_password = "1234";
 
 // UserAgent personnalisé (expulse les navigateurs qui n'ont pas ce UserAgent)
-const char* requiredUserAgent = "ESPShade/LE_VOLET";
+const char* requiredUserAgent = "ESPShade/ANYTHING";
 
 // GPIO pour le moteur
-const int motorPin = 5;
+const int motorUpPin = 5;
+const int motorDownPin = 5;
 bool motorState = false;
+const char* upOrDown = "OFF";
 
 // IP fixe pour éviter les problèmes
-//IPAddress local_IP(192, 168, 1, 184);
-//IPAddress gateway(192, 168, 1, 1);
-//IPAddress subnet(255, 255, 255, 0);
+IPAddress local_IP(192, 168, 1, 184);
+IPAddress gateway(192, 168, 1, 254);
+IPAddress subnet(255, 255, 255, 0);
 
 // Création du serveur
 AsyncWebServer server(80);
@@ -82,9 +84,9 @@ void wifi_setup(){
   WiFi.disconnect();
 
   // Connexion Wi-Fi avec IP statique
-  //if (!WiFi.config(local_IP, gateway, subnet)) {
-  //  Serial.println("Échec de la configuration de l'IP statique");
-  //}
+  if (!WiFi.config(local_IP, gateway, subnet)) {
+    Serial.println("Échec de la configuration de l'IP statique");
+  }
 
   // Connexion au WIFI
   WiFi.begin(ssid, password);
@@ -111,23 +113,27 @@ void wifi_setup(){
 void setup() {
   
   Serial.begin(115200);
-  //pinMode(motorPin, OUTPUT);
-  //digitalWrite(motorPin, LOW);
+  //pinMode(motorUpPin, OUTPUT);
+  //digitalWrite(motorUpPin, LOW);
+  //pinMode(motorDownPin, OUTPUT);
+  //digitalWrite(motorDownPin, LOW);
 
   wifi_setup();
 
-  // Route POST pour activer le moteur
-  server.on("/motor/on", HTTP_POST, [](AsyncWebServerRequest *request){
+  // Route POST pour activer le moteur en levage
+  server.on("/motor/up", HTTP_POST, [](AsyncWebServerRequest *request){
     if (!isRequestValid(request)) return;
 
     Serial.println("Accès autorisé : ouverture du volet");
 
     if (motorState) {
-      request->send(400, "application/json", "{\"error\":\"Motor already ON\"}");
+      request->send(400, "application/json", "{\"error\":\"Motor is already in another state. Please stop it before\"}");
     } else {
       motorState = true;
-      digitalWrite(motorPin, HIGH);
-      request->send(200, "application/json", "{\"message\":\"Motor turned ON\"}");
+      upOrDown = "UP";
+      digitalWrite(motorDownPin, LOW);
+      digitalWrite(motorUpPin, HIGH);
+      request->send(200, "application/json", "{\"message\":\"Motor turned UP\"}");
     }
   });
 
@@ -135,14 +141,33 @@ void setup() {
   server.on("/motor/off", HTTP_POST, [](AsyncWebServerRequest *request){
     if (!isRequestValid(request)) return;
 
-    Serial.println("Accès autorisé : fermeture du volet");
+    Serial.println("Accès autorisé : arrêt du volet");
 
     if (!motorState) {
-      request->send(400, "application/json", "{\"error\":\"Motor already OFF\"}");
+      request->send(400, "application/json", "{\"error\":\"Motor is already OFF\"}");
     } else {
       motorState = false;
-      digitalWrite(motorPin, LOW);
+      upOrDown = "OFF";
+      digitalWrite(motorUpPin, LOW);
+      digitalWrite(motorDownPin, LOW);
       request->send(200, "application/json", "{\"message\":\"Motor turned OFF\"}");
+    }
+  });
+
+  // Route POST pour activer le moteur en descente
+  server.on("/motor/down", HTTP_POST, [](AsyncWebServerRequest *request){
+    if (!isRequestValid(request)) return;
+
+    Serial.println("Accès autorisé : fermeture du volet");
+
+    if (motorState) {
+      request->send(400, "application/json", "{\"error\":\"Motor is already in another state. Please stop it before\"}");
+    } else {
+      motorState = true;
+      upOrDown = "DOWN";
+      digitalWrite(motorUpPin, LOW);
+      digitalWrite(motorDownPin, HIGH);
+      request->send(200, "application/json", "{\"message\":\"Motor turned DOWN\"}");
     }
   });
 
@@ -154,6 +179,7 @@ void setup() {
 
     StaticJsonDocument<200> jsonResponse;
     jsonResponse["motorState"] = motorState ? "ON" : "OFF";
+    jsonResponse["upOrDown"] = upOrDown;
     String response;
     serializeJson(jsonResponse, response);
     request->send(200, "application/json", response);

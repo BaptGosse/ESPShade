@@ -1,0 +1,30 @@
+[
+    {
+        "merged": "fr.baptgosse.espshade.app-mergeDebugResources-47:/layout/fragment_gallery.xml",
+        "source": "fr.baptgosse.espshade.app-main-50:/layout/fragment_gallery.xml"
+    },
+    {
+        "merged": "fr.baptgosse.espshade.app-mergeDebugResources-47:/layout/fragment_slideshow.xml",
+        "source": "fr.baptgosse.espshade.app-main-50:/layout/fragment_slideshow.xml"
+    },
+    {
+        "merged": "fr.baptgosse.espshade.app-mergeDebugResources-47:/layout/nav_header_main.xml",
+        "source": "fr.baptgosse.espshade.app-main-50:/layout/nav_header_main.xml"
+    },
+    {
+        "merged": "fr.baptgosse.espshade.app-mergeDebugResources-47:/layout/fragment_home.xml",
+        "source": "fr.baptgosse.espshade.app-main-50:/layout/fragment_home.xml"
+    },
+    {
+        "merged": "fr.baptgosse.espshade.app-mergeDebugResources-47:/layout/app_bar_main.xml",
+        "source": "fr.baptgosse.espshade.app-main-50:/layout/app_bar_main.xml"
+    },
+    {
+        "merged": "fr.baptgosse.espshade.app-mergeDebugResources-47:/layout/content_main.xml",
+        "source": "fr.baptgosse.espshade.app-main-50:/layout/content_main.xml"
+    },
+    {
+        "merged": "fr.baptgosse.espshade.app-mergeDebugResources-47:/layout/activity_main.xml",
+        "source": "fr.baptgosse.espshade.app-main-50:/layout/activity_main.xml"
+    }
+]
