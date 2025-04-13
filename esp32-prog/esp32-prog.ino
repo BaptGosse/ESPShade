@@ -81,9 +81,11 @@ bool isRequestValid(AsyncWebServerRequest *request) {
 
 void wifi_setup(){
   // Connexion au WIFI
+
   wifiManager.setSTAStaticIPConfig(local_IP, gateway, subnet);
   
-  wifiManager.setTimeout(300);
+  wifiManager.setConnectTimeout(10);
+  wifiManager.setConfigPortalTimeout(300);
 
   if (!wifiManager.autoConnect("ESPShadeSetup")) {
     Serial.println("❌ Connexion échouée. Redémarrage...");
