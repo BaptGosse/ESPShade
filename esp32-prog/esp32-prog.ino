@@ -1,11 +1,7 @@
-#include <WiFi.h>
+#include <WiFiManager.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 #include <base64.h>
-
-// Indentifiants pour le WIFI
-const char* ssid = "WIFI_NAME";
-const char* password = "WIFI_PASSWORD";
 
 // Identifiants pour l'authentification
 const char* http_username = "admin";
@@ -24,6 +20,9 @@ const char* upOrDown = "OFF";
 IPAddress local_IP(192, 168, 1, 184);
 IPAddress gateway(192, 168, 1, 254);
 IPAddress subnet(255, 255, 255, 0);
+
+// Création du wifi manager
+WiFiManager wifiManager;
 
 // Création du serveur
 AsyncWebServer server(80);
@@ -81,32 +80,18 @@ bool isRequestValid(AsyncWebServerRequest *request) {
 }
 
 void wifi_setup(){
-  WiFi.disconnect();
-
-  // Connexion Wi-Fi avec IP statique
-  if (!WiFi.config(local_IP, gateway, subnet)) {
-    Serial.println("Échec de la configuration de l'IP statique");
-  }
-
   // Connexion au WIFI
-  WiFi.begin(ssid, password);
-  Serial.print("Connexion au Wi-Fi...");
+  wifiManager.setSTAStaticIPConfig(local_IP, gateway, subnet);
+  
+  wifiManager.setTimeout(300);
 
-  int maxRetries = 20; // 20 * 500ms = 10 secondes max d'attente
-  while (WiFi.status() != WL_CONNECTED && maxRetries > 0) {
-    delay(500);
-    Serial.print(".");
-    maxRetries--;
+  if (!wifiManager.autoConnect("ESPShadeSetup")) {
+    Serial.println("❌ Connexion échouée. Redémarrage...");
+    delay(3000);
+    ESP.restart();
   }
 
-  Serial.println(" ");
-
-  if(WiFi.status() != WL_CONNECTED) {
-    Serial.println("Problème de connexion...");
-    return;
-  }
-
-  Serial.println("\nConnecté !");
+  Serial.println("✅ Connecté au Wi-Fi !");
   Serial.println(WiFi.localIP());
 }
 
