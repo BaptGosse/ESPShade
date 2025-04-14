@@ -11,10 +11,16 @@ const char* http_password = "1234";
 const char* requiredUserAgent = "ESPShade/ANYTHING";
 
 // GPIO pour le moteur
-const int motorUpPin = 5;
+const int motorUpPin = 4;
 const int motorDownPin = 5;
+const int enablePin = 18;
 bool motorState = false;
 const char* upOrDown = "OFF";
+
+// PWM pour le moteur
+const int pwmChannel = 0;
+const int pwmFreq = 15000;
+const int pwmResolution = 10;
 
 // IP fixe pour éviter les problèmes
 IPAddress local_IP(192, 168, 1, 184);
@@ -30,6 +36,15 @@ AsyncWebServer server(80);
 // Fonction d'encodage en Base64
 String encodeBase64(String input) {
   return base64::encode(input);
+}
+
+// Convertisseur d'un pourcentage de vitesse
+const int minDuty = 0;
+const int maxDuty = 1023;
+
+int dutyCycle(int speed) {
+  if (speed <= 0 || speed > 100) return 0;
+  return minDuty + ((maxDuty - minDuty) * (speed - 1)) / 99;
 }
 
 // Fonction de vérification du UserAgent
@@ -123,10 +138,12 @@ void wifi_setup(){
 void setup() {
   
   Serial.begin(115200);
-  //pinMode(motorUpPin, OUTPUT);
-  //digitalWrite(motorUpPin, LOW);
-  //pinMode(motorDownPin, OUTPUT);
-  //digitalWrite(motorDownPin, LOW);
+  pinMode(motorUpPin, OUTPUT);
+  digitalWrite(motorUpPin, LOW);
+  pinMode(motorDownPin, OUTPUT);
+  digitalWrite(motorDownPin, LOW);
+
+  ledcAttachChannel(enablePin, pwmFreq, pwmResolution, pwmChannel);
 
   wifi_setup();
 
@@ -143,6 +160,7 @@ void setup() {
       upOrDown = "UP";
       digitalWrite(motorDownPin, LOW);
       digitalWrite(motorUpPin, HIGH);
+      ledcWrite(pwmChannel, dutyCycle(75));
       request->send(200, "application/json", "{\"message\":\"Motor turned UP\"}");
     }
   });
@@ -158,6 +176,7 @@ void setup() {
     } else {
       motorState = false;
       upOrDown = "OFF";
+      ledcWrite(pwmChannel, dutyCycle(0));
       digitalWrite(motorUpPin, LOW);
       digitalWrite(motorDownPin, LOW);
       request->send(200, "application/json", "{\"message\":\"Motor turned OFF\"}");
@@ -177,6 +196,7 @@ void setup() {
       upOrDown = "DOWN";
       digitalWrite(motorUpPin, LOW);
       digitalWrite(motorDownPin, HIGH);
+      ledcWrite(pwmChannel, dutyCycle(75));
       request->send(200, "application/json", "{\"message\":\"Motor turned DOWN\"}");
     }
   });
