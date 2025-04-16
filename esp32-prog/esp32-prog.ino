@@ -17,11 +17,6 @@ const int enablePin = 18;
 bool motorState = false;
 const char* upOrDown = "OFF";
 
-// PWM pour le moteur
-const int pwmChannel = 0;
-const int pwmFreq = 15000;
-const int pwmResolution = 10;
-
 // IP fixe pour éviter les problèmes
 IPAddress local_IP(192, 168, 1, 184);
 IPAddress gateway(192, 168, 1, 254);
@@ -36,15 +31,6 @@ AsyncWebServer server(80);
 // Fonction d'encodage en Base64
 String encodeBase64(String input) {
   return base64::encode(input);
-}
-
-// Convertisseur d'un pourcentage de vitesse
-const int minDuty = 0;
-const int maxDuty = 1023;
-
-int dutyCycle(int speed) {
-  if (speed <= 0 || speed > 100) return 0;
-  return minDuty + ((maxDuty - minDuty) * (speed - 1)) / 99;
 }
 
 // Fonction de vérification du UserAgent
@@ -135,6 +121,26 @@ void wifi_setup(){
   Serial.println(WiFi.localIP());
 }
 
+void progressive_move(){
+  for(int i = 0; i <= 255; i+=5){
+    analogWrite(enablePin, i);
+    delay(100);
+    if(i <= 150){
+      i = i+5;
+    }
+  }
+}
+
+void progressive_stop(){
+  for(int i = 255; i >= 0; i-=5){
+    analogWrite(enablePin, i);
+    delay(100);
+    if(i <= 150){
+      i = i-5;
+    }
+  }
+}
+
 void setup() {
   
   Serial.begin(115200);
@@ -142,8 +148,7 @@ void setup() {
   digitalWrite(motorUpPin, LOW);
   pinMode(motorDownPin, OUTPUT);
   digitalWrite(motorDownPin, LOW);
-
-  ledcAttachChannel(enablePin, pwmFreq, pwmResolution, pwmChannel);
+  pinMode(enablePin, OUTPUT);
 
   wifi_setup();
 
@@ -158,10 +163,10 @@ void setup() {
     } else {
       motorState = true;
       upOrDown = "UP";
+      request->send(200, "application/json", "{\"message\":\"Motor turned UP\"}");
       digitalWrite(motorDownPin, LOW);
       digitalWrite(motorUpPin, HIGH);
-      ledcWrite(pwmChannel, dutyCycle(75));
-      request->send(200, "application/json", "{\"message\":\"Motor turned UP\"}");
+      progressive_move();
     }
   });
 
@@ -176,10 +181,10 @@ void setup() {
     } else {
       motorState = false;
       upOrDown = "OFF";
-      ledcWrite(pwmChannel, dutyCycle(0));
+      request->send(200, "application/json", "{\"message\":\"Motor turned OFF\"}");
+      progressive_stop();
       digitalWrite(motorUpPin, LOW);
       digitalWrite(motorDownPin, LOW);
-      request->send(200, "application/json", "{\"message\":\"Motor turned OFF\"}");
     }
   });
 
@@ -194,10 +199,10 @@ void setup() {
     } else {
       motorState = true;
       upOrDown = "DOWN";
+      request->send(200, "application/json", "{\"message\":\"Motor turned DOWN\"}");
       digitalWrite(motorUpPin, LOW);
       digitalWrite(motorDownPin, HIGH);
-      ledcWrite(pwmChannel, dutyCycle(75));
-      request->send(200, "application/json", "{\"message\":\"Motor turned DOWN\"}");
+      progressive_move();
     }
   });
 
